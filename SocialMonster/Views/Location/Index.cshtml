@@ -1,0 +1,894 @@
+﻿@{
+    ViewBag.Title = "Location Map Dashboard";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+
+
+<!-- ================= FILTER BAR ================= -->
+<div class="mb-3 d-flex gap-2 align-items-center">
+    <select id="mapSearchCategory" class="form-select form-select-sm" style="width:140px;">
+        <option value="location">Location</option>
+        <option value="account">Account</option>
+    </select>
+
+    <input type="text"
+           id="mapSearchText"
+           class="form-control form-control-sm"
+           placeholder="Search..."
+           style="width:200px;" />
+
+    <div id="searchSuggestions"
+         class="list-group position-absolute"
+         style="z-index:1000; width:200px; display:none;"></div>
+
+
+    <input type="date"
+           id="mapStartDate"
+           class="form-control form-control-sm"
+           style="width:160px;" />
+
+    <input type="date"
+           id="mapEndDate"
+           class="form-control form-control-sm"
+           style="width:160px;" />
+
+    <!-- 🟦 PROVINCE -->
+    <select id="provinceFilter"
+            class="form-select form-select-sm"
+            style="width:180px;">
+        <option value="">Аймаг / Хот</option>
+    </select>
+
+    <!-- 🟦 DISTRICT -->
+    <select id="districtFilter"
+            class="form-select form-select-sm"
+            style="width:180px;"
+            disabled>
+        <option value="">Сум / Дүүрэг</option>
+    </select>
+</div>
+
+<!-- ================= DASHBOARD ================= -->
+<div class="row" style="height:calc(100vh - 180px);">
+
+    <!-- LEFT: MAP (2/3) -->
+    <div class="col-md-8 h-100">
+        <div id="map" style="height:100%; width:100%;"></div>
+    </div>
+
+    <!-- RIGHT: STATS + LIST (1/3) -->
+    <div class="col-md-4 h-100 overflow-auto">
+        <h5>📊 Location Statistics</h5>
+        <div id="topLocations"></div>
+
+        <hr />
+    </div>
+
+</div>
+
+<!-- ================= LEAFLET ================= -->
+<link rel="stylesheet"
+      href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+
+
+<!-- ================= TABLE ================= -->
+<hr />
+
+<h5 class="mt-3">📋 Location List</h5>
+
+<div class="mb-2">
+    <label>
+        <input type="checkbox" id="onlyWithLocation" checked />
+        Only with location
+    </label>
+</div>
+<table id="locationTable" class="table table-bordered table-striped">
+    <thead>
+        <tr>
+            <th>Account</th>
+            <th>Post</th>
+            <th>Date</th>
+            <th>
+                Location <select id="locationFilter">
+                    <option value="">All locations</option>
+                </select>
+            </th>
+            <th>Url</th>
+            <th>Action</th>
+        </tr>
+    </thead>
+</table>
+
+
+<!--Side panel for edit button-->
+<div class="modal fade" id="editModal">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+
+            <div class="modal-header">
+                <h5>Edit Location</h5>
+            </div>
+
+            <div class="modal-body row">
+                <!-- LEFT -->
+                <div class="col-md-7">
+                    <pre id="editPostContent"></pre>
+                </div>
+
+                <!-- RIGHT -->
+                <div class="col-md-5">
+                    <div id="editMappings"></div>
+                    <button class="btn btn-sm btn-success"
+                            onclick="openAddLocation()">
+                        ➕ Add location
+                    </button>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<!-- ADD LOCATION MODAL -->
+<div class="modal fade" id="addLocationModal">
+    <div class="modal-dialog">
+        <div class="modal-content">
+
+            <div class="modal-header">
+                <h5>Add Location</h5>
+            </div>
+
+            <div class="modal-body">
+                <div class="mb-2">
+                    <label>Location / Alias</label>
+                    <input type="text"
+                           id="newLocationToken"
+                           class="form-control"
+                           placeholder="e.g. 10-р хороолол" />
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-6">
+                    <h6>Canonical</h6>
+                    <div id="canonicalBox"></div>
+                </div>
+                <div class="col-md-6">
+                    <h6>Aliases</h6>
+                    <div id="aliasBox"></div>
+                </div>
+            </div>
+
+
+            <div class="modal-footer">
+                <div class="text-muted small">
+                    Canonical: <b id="selectedCanonicalText">-</b><br />
+                    Alias: <b id="selectedAliasText">-</b>
+                </div>
+
+                <button class="btn btn-secondary"
+                        data-bs-dismiss="modal">
+                    Cancel
+                </button>
+
+                <button class="btn btn-success"
+                        onclick="submitAddLocation()">
+                    Save
+                </button>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+
+
+
+<!-- ================= CSS ================= -->
+<style>
+    #locationTable {
+        width: 100%;
+    }
+    /* Post preview */
+    .post-preview {
+        max-width: 420px;
+        white-space: wrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    /* Full post */
+    .post-full {
+        display: none;
+        white-space: normal;
+        max-width: 420px;
+    }
+
+    /* Show more link in add location logic*/
+    .show-more {
+        display: inline-block;
+        margin-top: 4px;
+        color: #0d6efd;
+        cursor: pointer;
+        font-size: 12px;
+    }
+    .canonical-item, .alias-item {
+        cursor: pointer;
+        padding: 4px 6px;
+        border-radius: 4px;
+    }
+
+        .canonical-item:hover,
+        .alias-item:hover {
+            background: #f1f1f1;
+        }
+
+    .selected {
+        background: #0d6efd;
+        color: white;
+    }
+
+</style>
+
+
+@section Scripts {
+
+    <script>
+        // ================= MAP INIT =================
+        var map = L.map('map').setView([47.9186, 106.9170], 6); // Mongolia
+
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 18
+        }).addTo(map);
+
+        var markersLayer = L.layerGroup().addTo(map);
+
+        // ================= FILTER STATE =================
+        function getFilters() {
+            return {
+                category: $('#mapSearchCategory').val(),
+                search: $('#mapSearchText').val(),
+                startDate: $('#mapStartDate').val(),
+                endDate: $('#mapEndDate').val(),
+                location: $('#locationFilter').val(),
+                provinceId: $('#provinceFilter').val(),
+                districtId: $('#districtFilter').val(),
+            };
+        }
+        function getListFilters() {
+            return {
+                ...getFilters(),
+                OnlyWithLocation: $('#onlyWithLocation').is(':checked')
+            };
+        }
+
+        // ================= LOAD MAP =================
+        function loadMapData() {
+            markersLayer.clearLayers();
+
+            $.get('/Location/GetMapLocations', getFilters(), function (data) {
+                drawMarkers(data);
+            });
+        }
+
+        // ================= DRAW MARKERS =================
+        function drawMarkers(data) {
+
+            if (!data || data.length === 0) return;
+
+            const sorted = [...data].sort((a, b) => b.Count - a.Count);
+            const top5 = sorted.slice(0, 5);
+
+            data.forEach(function (x) {
+
+                if (!x.Lat || !x.Lon) return;
+
+                const isTop = top5.some(t => t.LocationId === x.LocationId);
+
+
+                const marker = L.circleMarker([x.Lat, x.Lon], {
+                    radius: Math.min(30, 5 + x.Count / 15),
+                    fillColor: '#ff5722',
+                    color: '#333',
+                    weight: 1,
+                    fillOpacity: 0.8
+                }).addTo(markersLayer);
+
+                marker.bindPopup(`<b>${x.Name}</b><br/>Posts: ${x.Count}`);
+
+                /*
+                if (isTop) {
+                    marker.bindTooltip(
+                        `<b>${x.Name}</b><br/>Posts: ${x.Count}`,
+                        {
+                            permanent: true,
+                            direction: 'top',
+                            className: 'top-location-label',
+                            offset: [0, -18]
+                        }
+                    );
+                }*/
+            });
+        }
+
+
+        // ================= LOAD STATISTICS =================
+        function loadTopLocations() {
+            $.get('/Location/GetLocationStatistics', getFilters(), function (res) {
+
+                $('#topLocations').empty();
+                $('#topLocations').append(`
+                                  <div class="mb-2">
+                                      <b> Нийт пост:</b> ${res.totalPosts}<br/>
+                                      <b> Байршил илэрсэн пост:</b> ${res.totalPostsWLoc}<br/>
+                                      <b> Нийт илэрсэн байршил:</b> ${res.totalLocationHits}
+                                  </div>
+                                  <hr/>
+                                  `);
+
+                res.stats.forEach(function (x) {
+
+                    let percent = x.Percentage.toFixed(1);
+
+                    $('#topLocations').append(`
+                                         <div class="mb-2">
+                                                <div class="d-flex justify-content-between">
+                                                       <b>${x.Name}</b>
+                                                       <small>${x.Count} (${percent}%)</small>
+                                                 </div>
+
+                                                 <div class="progress" style="height:14px;">
+                                                         <div class="progress-bar bg-primary"
+                                                                     style="width:${percent}%"
+                                                                     role="progressbar"
+                                                                     aria-valuenow="${percent}"
+                                                                     aria-valuemin="0"
+                                                                     aria-valuemax="100">
+                                                          </div>
+                                                  </div>
+                                          </div>
+                                    `);
+                });
+            });
+        }
+
+
+
+        // ================= LOAD LIST =================
+
+        var table;
+
+        function initLocationTable() {
+
+            table = $('#locationTable').DataTable({
+                serverSide: true,
+                processing: true,
+                searching: false,
+                ajax: {
+                    url: '/Location/GetLocationList',
+                    data: function (d) {
+                        Object.assign(d, getListFilters());
+                    }
+                },
+                columns: [
+                    { data: 'FromName' },
+                    {
+                        data: 'PostContent',
+                        render: function (data) {
+                            if (!data) return '';
+                            if (data.length <= 150) return data;
+                            return `
+                                            <span class="post-preview">${data.substr(0, 150)}...</span>
+                                            <span class="post-full" style="display:none">${data}</span>
+                                            <a href="javascript:void(0)"
+                                               class="toggle-post text-primary"
+                                               data-state="collapsed"
+                                               style="font-size:12px">
+                                               Show more
+                                            </a>
+                                        `;
+                        }
+                    },
+                    { data: 'UpdatedTime' },
+                    { data: 'LocationName' },
+                    {
+                        data: 'Url',
+                        render: d => `<a href="${d}" target="_blank">Open</a>`
+                    },
+                    {
+                        data: 'PostID',
+                        render: id =>
+                            `<button class="btn btn-sm btn-warning"
+                                                 onclick="editLocation('${id}')">Edit</button>
+
+                                                 `
+                    }
+                ]
+            });
+        }
+
+        $('#locationTable').on('click', '.toggle-post', function () {
+            const $btn = $(this);
+            const $td = $btn.closest('td');
+
+            const isCollapsed = $btn.data('state') === 'collapsed';
+
+            if (isCollapsed) {
+                $td.find('.post-preview').hide();
+                $td.find('.post-full').show();
+                $btn.text('Show less');
+                $btn.data('state', 'expanded');
+            } else {
+                $td.find('.post-full').hide();
+                $td.find('.post-preview').show();
+                $btn.text('Show more');
+                $btn.data('state', 'collapsed');
+            }
+        });
+        function resetLocationUI() {
+            selectedCanonicalId = null;
+            selectedAliasText = null;
+
+            $('#newLocationToken').val('');
+            $('#canonicalBox').empty();
+            $('#aliasBox').empty();
+
+            $('#selectedCanonicalText').text('-');
+            $('#selectedAliasText').text('-');
+        }
+
+
+        // ================= REMOVE RECORD =================
+
+        function removeLocationMapping(contentPostId) {
+            if (!confirm('This will remove the detected record of location for this post. Continue?'))
+                return;
+
+            $.post('/Location/RemoveLocationMapping', { contentPostId }, function (res) {
+                if (!res.success) {
+                    alert(res.message || 'Failed to remove location');
+                    return;
+                }
+
+                // Add modal нээлттэй бол reset + hide
+                if ($('#addLocationModal').hasClass('show')) {
+                    resetLocationUI();
+                    $('#addLocationModal').modal('hide');
+                }
+
+                // Edit modal refresh
+                if (currentPostId) {
+                    loadEditModal(currentPostId);
+                }
+
+                reloadAll();
+            });
+        }
+
+
+        
+
+        // ================= EDIT RECORD =================
+        let selectedCanonicalId = null;
+        let selectedAliasText = null;
+
+        function loadEditModal(postId) {
+            resetLocationUI();
+
+            $.get('/Location/GetEditDetails', { postId }, function (res) {
+
+                // LEFT: Post content
+                $('#editPostContent').text(res.content || '');
+
+                // RIGHT: mappings
+                const box = $('#editMappings');
+                box.empty();
+
+                if (!res.mappings || res.mappings.length === 0) {
+                    box.append('<div class="text-muted">No locations mapped</div>');
+                } else {
+                    res.mappings.forEach(m => {
+                        box.append(`
+                        <div class="mapping-row mb-2">
+                            <b>Alias:</b> ${m.Alias || '-'} <br/>
+                            <b>Canonical:</b> ${m.Canonical}
+                            <button class="btn btn-sm btn-danger ms-2"
+                                    onclick="removeLocationMapping('${m.ID}')">❌</button>
+                        </div>
+                    `);
+                    });
+                }
+
+                $('#editModal').modal('show');
+            });
+        }
+        function updateSelectionUI() {
+            $('#selectedCanonicalText').text(
+                $('.canonical-item.selected').text() || '-'
+            );
+            $('#selectedAliasText').text(selectedAliasText || '-');
+        }
+
+
+       
+
+        function submitAddLocation() {
+
+            const isNewCanonical = $('#newCanonicalInput').length > 0;
+
+            let token;
+            let canonicalId = selectedCanonicalId;
+
+            if (isNewCanonical) {
+                const canonicalText = $('#newCanonicalInput').val();
+                const aliasText = $('#newAliasInput').val();
+
+                if (!canonicalText || !aliasText) {
+                    alert('Canonical болон Alias хоёуланг нь оруулна уу');
+                    return;
+                }
+
+                token = aliasText;
+                canonicalId = null; // backend canonical шинээр үүсгэнэ
+            } else {
+                token = selectedAliasText || $('#newLocationToken').val();
+            }
+            if (!isNewCanonical && !selectedAliasText) {
+                alert('Alias сонгоно уу');
+                return;
+            }
+       
+            $.post('/Location/AddLocationMapping', {
+                postId: currentPostId,
+                token: token,
+                canonicalText: canonicalText,
+                canonicalId: null
+            }, function (res) {
+
+                if (!res.success) {
+                    alert(res.message || 'Failed');
+                    return;
+                }
+
+                $('#addLocationModal').modal('hide');
+                loadEditModal(currentPostId);
+                reloadAll();
+            });
+        }
+
+
+        function startNewCanonical() {
+
+            selectedCanonicalId = null;
+            selectedAliasText = null;
+
+            $('#canonicalBox').html(`
+                <input id="newCanonicalInput"
+                       class="form-control mb-2"
+                       placeholder="Canonical (кирил)" />
+            `);
+
+            $('#aliasBox').html(`
+                <input id="newAliasInput"
+                       class="form-control"
+                       placeholder="Alias оруулна уу" />
+            `);
+
+            updateSelectionUI();
+        }
+
+        
+
+
+        $('#newLocationToken').on('keyup', function () {
+
+            selectedCanonicalId = null;
+            selectedAliasText = null;
+            updateSelectionUI();
+
+
+            const q = $(this).val().trim();
+            if (q.length < 2) return;
+
+            $.get('/Location/SearchAliasHierarchy', { q }, function (res) {
+
+
+                $('#canonicalBox').empty();
+                $('#aliasBox').empty();
+
+                // ❌ not found → new canonical + alias
+                if (!res.found) {
+                    $('#canonicalBox').html(`
+                     <button class="btn btn-outline-success btn-sm"
+                        onclick="startNewCanonical()">
+                        ➕ Шинэ байршил нэмэх
+                    </button>
+            `);
+                    return;
+                }
+
+                // ✅ found
+                res.canonicals.forEach(c => {
+
+                    $('#canonicalBox').append(`
+                <div class="canonical-item"
+                     data-id="${c.CanonicalId}">
+                    <b>${c.CanonicalText}</b>
+                </div>
+            `);
+
+                    c.Aliases.forEach(a => {
+                        $('#aliasBox').append(`
+                    <div class="alias-item"
+                         data-canonical="${c.CanonicalId}">
+                        ${a.Text}
+                    </div>
+                `);
+                    });
+                });
+            });
+        });
+
+        $('#canonicalBox').on('click', '.canonical-item', function () {
+
+            selectedCanonicalId = $(this).data('id');
+            selectedAliasText = null;
+
+            $('.canonical-item').removeClass('selected');
+            $(this).addClass('selected');
+
+            $('.alias-item').hide();
+            $(`.alias-item[data-canonical="${selectedCanonicalId}"]`).show();
+            updateSelectionUI();
+            
+
+        });
+
+        $('#aliasBox').on('click', '.alias-item', function () {
+
+            selectedAliasText = $(this).text().trim();
+            selectedCanonicalId = $(this).data('canonical');
+
+            $('.alias-item').removeClass('selected');
+            $(this).addClass('selected');
+
+            $('.canonical-item').removeClass('selected');
+            $(`.canonical-item[data-id="${selectedCanonicalId}"]`)
+                .addClass('selected');
+            updateSelectionUI();
+        });
+        $('#addLocationModal').on('hidden.bs.modal', function () {
+            selectedCanonicalId = null;
+            selectedAliasText = null;
+            $('#canonicalBox').empty();
+            $('#aliasBox').empty();
+            $('#newLocationToken').val('');
+
+            updateSelectionUI();
+        });
+
+
+
+        // ================= LOAD PROVINCE =================
+
+        function loadProvinces() {
+            $.get('/Location/GetProvinces', function (data) {
+                let ddl = $('#provinceFilter');
+                ddl.empty().append('<option value="">Аймаг / Хот</option>');
+
+                data.forEach(x => {
+                    ddl.append(`<option value="${x.ID}">${x.Text}</option>`);
+                });
+            });
+        }
+        // ================= ZOOM =================
+        function zoomToArea(id) {
+            if (!id) return;
+
+            $.get('/Location/GetLocationBounds', { id }, function (b) {
+                if (!b) return;
+
+                let bounds = L.latLngBounds(
+                    [b.minLat, b.minLon],
+                    [b.maxLat, b.maxLon]
+                );
+                map.fitBounds(bounds, { padding: [30, 30] });
+            });
+        }
+
+        // ================= DATE INPUT =================
+        function initDateFilters() {
+            $.get('/Location/GetPostDateRange', function (res) {
+                if (!res) return;
+
+                $('#mapStartDate').val(res.minDate);
+                $('#mapEndDate').val(res.maxDate);
+
+                // Анхны ачаалал date-тайгаа хамт
+                loadMapData();
+                loadTopLocations();
+            });
+        }
+        //================= location filter for list =================
+
+        function loadLocationFilter() {
+            $.get('/Location/GetLocationFilters', getFilters(), function (data) {
+                let ddl = $('#locationFilter');
+                let selected = ddl.val();
+                ddl.empty();
+                ddl.append('<option value="">All locations</option>');
+                data.forEach(function (loc) {
+                    ddl.append(`<option value="${loc}">${loc}</option>`);
+                });
+                if (selected && data.includes(selected)) {
+                    ddl.val(selected);
+                }
+            });
+        }
+
+
+
+
+        $('#provinceFilter').on('change', function () {
+
+            let provinceId = $(this).val();
+            let districtDdl = $('#districtFilter');
+
+            districtDdl.empty()
+                .append('<option value="">Сум / Дүүрэг</option>')
+                .prop('disabled', true);
+
+            if (!provinceId) {
+                loadMapData();
+                loadTopLocations();
+                return;
+            }
+
+            $.get('/Location/GetDistricts', { provinceId }, function (data) {
+
+                data.forEach(x => {
+                    districtDdl.append(`<option value="${x.ID}">${x.Text}</option>`);
+                });
+
+                districtDdl.prop('disabled', false);
+
+                loadMapData();
+                loadTopLocations();
+            });
+        });
+
+
+
+        let currentPostId = null;
+
+        function editLocation(postId) {
+            currentPostId = postId;
+            loadEditModal(postId);
+        }
+
+        //search suggestion
+        let searchTimer = null;
+
+        $('#mapSearchText').on('keyup', function () {
+            clearTimeout(searchTimer);
+
+            const q = $(this).val();
+            const category = $('#mapSearchCategory').val();
+
+            if (q.length < 2) {
+                $('#searchSuggestions').hide();
+                return;
+            }
+
+            searchTimer = setTimeout(() => {
+                const box = $('#searchSuggestions');
+                if (category === 'location') {
+                    $.get('/Location/SearchAliasHierarchy', { q }, function (res) {
+                        box.empty();
+
+                        if (!res.found) {
+                            box.append(`<div class="list-group-item text-muted">❌ No match</div>`);
+                            box.show();
+                            return;
+                        }
+
+                        res.canonicals.forEach(c => {
+                            box.append(`
+                                <button class="list-group-item list-group-item-action"
+                                        data-text="${c.CanonicalText}">
+                                    🏷 ${c.CanonicalText}
+                                    <small class="text-muted">
+                                        (${c.Aliases.map(a => a.Text).join(', ')})
+                                    </small>
+                                </button>
+                            `);
+                        });
+                        box.show();
+                    });
+                }
+                else { box.hide(); }
+
+            }, 250);
+
+        });
+        $('#searchSuggestions').on('click', '.list-group-item', function () {
+            const text = $(this).data('text');
+            $('#mapSearchText').val(text);
+            $('#searchSuggestions').hide();
+            reloadAll();
+        });
+
+        function openAddLocation() {
+
+            selectedCanonicalId = null;
+            selectedAliasText = null;
+
+            $('#newLocationToken').val('');
+            $('#canonicalBox').empty();
+            $('#aliasBox').empty();
+
+            $('#selectedCanonicalText').text('-');
+            $('#selectedAliasText').text('-');
+
+            $('#addLocationModal').modal('show');
+        }
+
+
+
+
+        // ================= EVENTS =================
+        $('#mapSearchCategory, #mapSearchText, #mapStartDate, #mapEndDate')
+            .on('change keyup', reloadAll);
+
+
+        $('#provinceFilter').on('change', function () {
+            let id = $(this).val();
+            if (id) zoomToArea(id);
+            reloadAll();
+        });
+
+        $('#districtFilter').on('change', function () {
+            let id = $(this).val();
+            if (id) zoomToArea(id);
+            reloadAll();
+        });
+        $('#locationFilter').on('change', reloadAll);//location filter for list
+
+        $('#onlyWithLocation').on('change', function () {
+            if (table) table.ajax.reload();
+        });
+
+        // ================= INIT =================
+        $(document).ready(function () {
+            loadMapData();
+            loadTopLocations();
+            loadProvinces();
+            initDateFilters();
+            initLocationTable();
+            loadLocationFilter();
+
+        });
+
+        // ================= RELOAD =================
+        function reloadAll() {
+            loadMapData();
+            loadTopLocations();
+            loadLocationFilter();
+            if (table) table.ajax.reload();
+        }
+
+        let reloadTimer = null;
+        function reloadAllDebounced() {
+            clearTimeout(reloadTimer);
+            reloadTimer = setTimeout(reloadAll, 300);
+        }
+
+        $('#provinceFilter, #districtFilter').on('change', reloadAllDebounced);
+
+
+    </script>
+
+}

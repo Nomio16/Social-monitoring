@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<edmx:Edmx Version="3.0" xmlns:edmx="http://schemas.microsoft.com/ado/2009/11/edmx">
+ <!-- EF Designer content (DO NOT EDIT MANUALLY BELOW HERE) -->
+  <edmx:Designer xmlns="http://schemas.microsoft.com/ado/2009/11/edmx">
+    <!-- Diagram content (shape and connector positions) -->
+    <edmx:Diagrams>
+      <Diagram DiagramId="52dc2b4505ad40cd8c4a410a80ab8487" Name="Diagram1" ZoomLevel="63">
+        <EntityTypeShape EntityType="SocialDataLocalModel.Facebook_Posts" Width="1.5" PointX="0.75" PointY="7.75" IsExpanded="true" />
+        <EntityTypeShape EntityType="SocialDataLocalModel.Social_Content_Post" Width="1.5" PointX="3" PointY="2.5" IsExpanded="true" />
+        <EntityTypeShape EntityType="SocialDataLocalModel.Social_Contents" Width="1.5" PointX="0.75" PointY="2.25" IsExpanded="true" />
+        <EntityTypeShape EntityType="SocialDataLocalModel.Social_Location_More" Width="1.5" PointX="3" PointY="6" IsExpanded="true" />
+        <AssociationConnector Association="SocialDataLocalModel.FK_ContentPost_Post" ManuallyRouted="false" />
+        <AssociationConnector Association="SocialDataLocalModel.FK_ContentPost_Content" ManuallyRouted="false" />
+        <AssociationConnector Association="SocialDataLocalModel.FK_ContentPost_MatchContent" ManuallyRouted="false" />
+        <AssociationConnector Association="SocialDataLocalModel.FK_LocationMore_Content" ManuallyRouted="false" />
+        <AssociationConnector Association="SocialDataLocalModel.FK_SocialContents_Parent" ManuallyRouted="false" />
+      </Diagram>
+    </edmx:Diagrams>
+  </edmx:Designer>
+</edmx:Edmx>

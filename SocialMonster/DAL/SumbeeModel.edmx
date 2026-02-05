@@ -1,0 +1,359 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<edmx:Edmx Version="3.0" xmlns:edmx="http://schemas.microsoft.com/ado/2009/11/edmx">
+  <!-- EF Runtime content -->
+  <edmx:Runtime>
+    <!-- SSDL content -->
+    <edmx:StorageModels>
+      <Schema Namespace="SocialDataLocalModel.Store" Provider="System.Data.SqlClient" ProviderManifestToken="2012" Alias="Self" xmlns:store="http://schemas.microsoft.com/ado/2007/12/edm/EntityStoreSchemaGenerator" xmlns:customannotation="http://schemas.microsoft.com/ado/2013/11/edm/customannotation" xmlns="http://schemas.microsoft.com/ado/2009/11/edm/ssdl">
+        <EntityType Name="Facebook_Posts">
+          <Key>
+            <PropertyRef Name="ID" />
+          </Key>
+          <Property Name="ID" Type="uniqueidentifier" Nullable="false" />
+          <Property Name="Message" Type="nvarchar(max)" />
+          <Property Name="FromName" Type="nvarchar" MaxLength="255" />
+          <Property Name="UpdateDate" Type="datetime" />
+          <Property Name="FromUrl" Type="nvarchar(max)" />
+        </EntityType>
+        <EntityType Name="Social_Content_Post">
+          <Key>
+            <PropertyRef Name="ID" />
+          </Key>
+          <Property Name="ID" Type="uniqueidentifier" Nullable="false" />
+          <Property Name="PostID" Type="uniqueidentifier" Nullable="false" />
+          <Property Name="ContentID" Type="uniqueidentifier" />
+          <Property Name="MatchContentID" Type="uniqueidentifier" />
+          <Property Name="IsChecked" Type="bit" />
+        </EntityType>
+        <EntityType Name="Social_Contents">
+          <Key>
+            <PropertyRef Name="ID" />
+          </Key>
+          <Property Name="ID" Type="uniqueidentifier" Nullable="false" />
+          <Property Name="Text" Type="nvarchar" MaxLength="500" Nullable="false" />
+          <Property Name="Level" Type="int" />
+          <Property Name="ParentID" Type="uniqueidentifier" />
+          <Property Name="IsParent" Type="bit" />
+          <Property Name="Type" Type="nvarchar" MaxLength="50" />
+        </EntityType>
+        <EntityType Name="Social_Location_More">
+          <Key>
+            <PropertyRef Name="ID" />
+          </Key>
+          <Property Name="ID" Type="uniqueidentifier" Nullable="false" />
+          <Property Name="ContentID" Type="uniqueidentifier" Nullable="false" />
+          <Property Name="Type" Type="nvarchar" MaxLength="50" />
+          <Property Name="Latitude" Type="nvarchar" MaxLength="50" />
+          <Property Name="Longitude" Type="nvarchar" MaxLength="50" />
+        </EntityType>
+        <Association Name="FK_ContentPost_Content">
+          <End Role="Social_Contents" Type="Self.Social_Contents" Multiplicity="0..1" />
+          <End Role="Social_Content_Post" Type="Self.Social_Content_Post" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="Social_Contents">
+              <PropertyRef Name="ID" />
+            </Principal>
+            <Dependent Role="Social_Content_Post">
+              <PropertyRef Name="ContentID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK_ContentPost_MatchContent">
+          <End Role="Social_Contents" Type="Self.Social_Contents" Multiplicity="0..1" />
+          <End Role="Social_Content_Post" Type="Self.Social_Content_Post" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="Social_Contents">
+              <PropertyRef Name="ID" />
+            </Principal>
+            <Dependent Role="Social_Content_Post">
+              <PropertyRef Name="MatchContentID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK_ContentPost_Post">
+          <End Role="Facebook_Posts" Type="Self.Facebook_Posts" Multiplicity="1">
+            <OnDelete Action="Cascade" />
+          </End>
+          <End Role="Social_Content_Post" Type="Self.Social_Content_Post" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="Facebook_Posts">
+              <PropertyRef Name="ID" />
+            </Principal>
+            <Dependent Role="Social_Content_Post">
+              <PropertyRef Name="PostID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK_LocationMore_Content">
+          <End Role="Social_Contents" Type="Self.Social_Contents" Multiplicity="1">
+            <OnDelete Action="Cascade" />
+          </End>
+          <End Role="Social_Location_More" Type="Self.Social_Location_More" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="Social_Contents">
+              <PropertyRef Name="ID" />
+            </Principal>
+            <Dependent Role="Social_Location_More">
+              <PropertyRef Name="ContentID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK_SocialContents_Parent">
+          <End Role="Social_Contents" Type="Self.Social_Contents" Multiplicity="0..1" />
+          <End Role="Social_Contents1" Type="Self.Social_Contents" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="Social_Contents">
+              <PropertyRef Name="ID" />
+            </Principal>
+            <Dependent Role="Social_Contents1">
+              <PropertyRef Name="ParentID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <EntityContainer Name="SocialDataLocalModelStoreContainer">
+          <EntitySet Name="Facebook_Posts" EntityType="Self.Facebook_Posts" Schema="dbo" store:Type="Tables" />
+          <EntitySet Name="Social_Content_Post" EntityType="Self.Social_Content_Post" Schema="dbo" store:Type="Tables" />
+          <EntitySet Name="Social_Contents" EntityType="Self.Social_Contents" Schema="dbo" store:Type="Tables" />
+          <EntitySet Name="Social_Location_More" EntityType="Self.Social_Location_More" Schema="dbo" store:Type="Tables" />
+          <AssociationSet Name="FK_ContentPost_Content" Association="Self.FK_ContentPost_Content">
+            <End Role="Social_Contents" EntitySet="Social_Contents" />
+            <End Role="Social_Content_Post" EntitySet="Social_Content_Post" />
+          </AssociationSet>
+          <AssociationSet Name="FK_ContentPost_MatchContent" Association="Self.FK_ContentPost_MatchContent">
+            <End Role="Social_Contents" EntitySet="Social_Contents" />
+            <End Role="Social_Content_Post" EntitySet="Social_Content_Post" />
+          </AssociationSet>
+          <AssociationSet Name="FK_ContentPost_Post" Association="Self.FK_ContentPost_Post">
+            <End Role="Facebook_Posts" EntitySet="Facebook_Posts" />
+            <End Role="Social_Content_Post" EntitySet="Social_Content_Post" />
+          </AssociationSet>
+          <AssociationSet Name="FK_LocationMore_Content" Association="Self.FK_LocationMore_Content">
+            <End Role="Social_Contents" EntitySet="Social_Contents" />
+            <End Role="Social_Location_More" EntitySet="Social_Location_More" />
+          </AssociationSet>
+          <AssociationSet Name="FK_SocialContents_Parent" Association="Self.FK_SocialContents_Parent">
+            <End Role="Social_Contents" EntitySet="Social_Contents" />
+            <End Role="Social_Contents1" EntitySet="Social_Contents" />
+          </AssociationSet>
+        </EntityContainer>
+      </Schema>
+    </edmx:StorageModels>
+    <!-- CSDL content -->
+    <edmx:ConceptualModels>
+      <Schema Namespace="SocialDataLocalModel" Alias="Self" annotation:UseStrongSpatialTypes="false" xmlns:annotation="http://schemas.microsoft.com/ado/2009/02/edm/annotation" xmlns:customannotation="http://schemas.microsoft.com/ado/2013/11/edm/customannotation" xmlns="http://schemas.microsoft.com/ado/2009/11/edm">
+        <EntityType Name="Facebook_Posts">
+          <Key>
+            <PropertyRef Name="ID" />
+          </Key>
+          <Property Name="ID" Type="Guid" Nullable="false" />
+          <Property Name="Message" Type="String" MaxLength="Max" FixedLength="false" Unicode="true" />
+          <Property Name="FromName" Type="String" MaxLength="255" FixedLength="false" Unicode="true" />
+          <Property Name="UpdateDate" Type="DateTime" Precision="3" />
+          <Property Name="FromUrl" Type="String" MaxLength="Max" FixedLength="false" Unicode="true" />
+          <NavigationProperty Name="Social_Content_Post" Relationship="Self.FK_ContentPost_Post" FromRole="Facebook_Posts" ToRole="Social_Content_Post" />
+        </EntityType>
+        <EntityType Name="Social_Content_Post">
+          <Key>
+            <PropertyRef Name="ID" />
+          </Key>
+          <Property Name="ID" Type="Guid" Nullable="false" />
+          <Property Name="PostID" Type="Guid" Nullable="false" />
+          <Property Name="ContentID" Type="Guid" />
+          <Property Name="MatchContentID" Type="Guid" />
+          <Property Name="IsChecked" Type="Boolean" />
+          <NavigationProperty Name="Facebook_Posts" Relationship="Self.FK_ContentPost_Post" FromRole="Social_Content_Post" ToRole="Facebook_Posts" />
+          <NavigationProperty Name="Social_Contents" Relationship="Self.FK_ContentPost_Content" FromRole="Social_Content_Post" ToRole="Social_Contents" />
+          <NavigationProperty Name="Social_Contents1" Relationship="Self.FK_ContentPost_MatchContent" FromRole="Social_Content_Post" ToRole="Social_Contents" />
+        </EntityType>
+        <EntityType Name="Social_Contents">
+          <Key>
+            <PropertyRef Name="ID" />
+          </Key>
+          <Property Name="ID" Type="Guid" Nullable="false" />
+          <Property Name="Text" Type="String" MaxLength="500" FixedLength="false" Unicode="true" Nullable="false" />
+          <Property Name="Level" Type="Int32" />
+          <Property Name="ParentID" Type="Guid" />
+          <Property Name="IsParent" Type="Boolean" />
+          <Property Name="Type" Type="String" MaxLength="50" FixedLength="false" Unicode="true" />
+          <NavigationProperty Name="Social_Content_Post" Relationship="Self.FK_ContentPost_Content" FromRole="Social_Contents" ToRole="Social_Content_Post" />
+          <NavigationProperty Name="Social_Content_Post1" Relationship="Self.FK_ContentPost_MatchContent" FromRole="Social_Contents" ToRole="Social_Content_Post" />
+          <NavigationProperty Name="Social_Location_More" Relationship="Self.FK_LocationMore_Content" FromRole="Social_Contents" ToRole="Social_Location_More" />
+          <NavigationProperty Name="Social_Contents1" Relationship="Self.FK_SocialContents_Parent" FromRole="Social_Contents" ToRole="Social_Contents1" />
+          <NavigationProperty Name="Social_Contents2" Relationship="Self.FK_SocialContents_Parent" FromRole="Social_Contents1" ToRole="Social_Contents" />
+        </EntityType>
+        <EntityType Name="Social_Location_More">
+          <Key>
+            <PropertyRef Name="ID" />
+          </Key>
+          <Property Name="ID" Type="Guid" Nullable="false" />
+          <Property Name="ContentID" Type="Guid" Nullable="false" />
+          <Property Name="Type" Type="String" MaxLength="50" FixedLength="false" Unicode="true" />
+          <Property Name="Latitude" Type="String" MaxLength="50" FixedLength="false" Unicode="true" />
+          <Property Name="Longitude" Type="String" MaxLength="50" FixedLength="false" Unicode="true" />
+          <NavigationProperty Name="Social_Contents" Relationship="Self.FK_LocationMore_Content" FromRole="Social_Location_More" ToRole="Social_Contents" />
+        </EntityType>
+        <Association Name="FK_ContentPost_Post">
+          <End Role="Facebook_Posts" Type="Self.Facebook_Posts" Multiplicity="1">
+            <OnDelete Action="Cascade" />
+          </End>
+          <End Role="Social_Content_Post" Type="Self.Social_Content_Post" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="Facebook_Posts">
+              <PropertyRef Name="ID" />
+            </Principal>
+            <Dependent Role="Social_Content_Post">
+              <PropertyRef Name="PostID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK_ContentPost_Content">
+          <End Role="Social_Contents" Type="Self.Social_Contents" Multiplicity="0..1" />
+          <End Role="Social_Content_Post" Type="Self.Social_Content_Post" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="Social_Contents">
+              <PropertyRef Name="ID" />
+            </Principal>
+            <Dependent Role="Social_Content_Post">
+              <PropertyRef Name="ContentID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK_ContentPost_MatchContent">
+          <End Role="Social_Contents" Type="Self.Social_Contents" Multiplicity="0..1" />
+          <End Role="Social_Content_Post" Type="Self.Social_Content_Post" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="Social_Contents">
+              <PropertyRef Name="ID" />
+            </Principal>
+            <Dependent Role="Social_Content_Post">
+              <PropertyRef Name="MatchContentID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK_LocationMore_Content">
+          <End Role="Social_Contents" Type="Self.Social_Contents" Multiplicity="1">
+            <OnDelete Action="Cascade" />
+          </End>
+          <End Role="Social_Location_More" Type="Self.Social_Location_More" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="Social_Contents">
+              <PropertyRef Name="ID" />
+            </Principal>
+            <Dependent Role="Social_Location_More">
+              <PropertyRef Name="ContentID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK_SocialContents_Parent">
+          <End Role="Social_Contents" Type="Self.Social_Contents" Multiplicity="0..1" />
+          <End Role="Social_Contents1" Type="Self.Social_Contents" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="Social_Contents">
+              <PropertyRef Name="ID" />
+            </Principal>
+            <Dependent Role="Social_Contents1">
+              <PropertyRef Name="ParentID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <EntityContainer Name="SocialDataLocalEntities" annotation:LazyLoadingEnabled="true">
+          <EntitySet Name="Facebook_Posts" EntityType="Self.Facebook_Posts" />
+          <EntitySet Name="Social_Content_Post" EntityType="Self.Social_Content_Post" />
+          <EntitySet Name="Social_Contents" EntityType="Self.Social_Contents" />
+          <EntitySet Name="Social_Location_More" EntityType="Self.Social_Location_More" />
+          <AssociationSet Name="FK_ContentPost_Post" Association="Self.FK_ContentPost_Post">
+            <End Role="Facebook_Posts" EntitySet="Facebook_Posts" />
+            <End Role="Social_Content_Post" EntitySet="Social_Content_Post" />
+          </AssociationSet>
+          <AssociationSet Name="FK_ContentPost_Content" Association="Self.FK_ContentPost_Content">
+            <End Role="Social_Contents" EntitySet="Social_Contents" />
+            <End Role="Social_Content_Post" EntitySet="Social_Content_Post" />
+          </AssociationSet>
+          <AssociationSet Name="FK_ContentPost_MatchContent" Association="Self.FK_ContentPost_MatchContent">
+            <End Role="Social_Contents" EntitySet="Social_Contents" />
+            <End Role="Social_Content_Post" EntitySet="Social_Content_Post" />
+          </AssociationSet>
+          <AssociationSet Name="FK_LocationMore_Content" Association="Self.FK_LocationMore_Content">
+            <End Role="Social_Contents" EntitySet="Social_Contents" />
+            <End Role="Social_Location_More" EntitySet="Social_Location_More" />
+          </AssociationSet>
+          <AssociationSet Name="FK_SocialContents_Parent" Association="Self.FK_SocialContents_Parent">
+            <End Role="Social_Contents" EntitySet="Social_Contents" />
+            <End Role="Social_Contents1" EntitySet="Social_Contents" />
+          </AssociationSet>
+        </EntityContainer>
+      </Schema>
+    </edmx:ConceptualModels>
+    <!-- C-S mapping content -->
+    <edmx:Mappings>
+      <Mapping Space="C-S" xmlns="http://schemas.microsoft.com/ado/2009/11/mapping/cs">
+        <EntityContainerMapping StorageEntityContainer="SocialDataLocalModelStoreContainer" CdmEntityContainer="SocialDataLocalEntities">
+          <EntitySetMapping Name="Facebook_Posts">
+            <EntityTypeMapping TypeName="SocialDataLocalModel.Facebook_Posts">
+              <MappingFragment StoreEntitySet="Facebook_Posts">
+                <ScalarProperty Name="ID" ColumnName="ID" />
+                <ScalarProperty Name="Message" ColumnName="Message" />
+                <ScalarProperty Name="FromName" ColumnName="FromName" />
+                <ScalarProperty Name="UpdateDate" ColumnName="UpdateDate" />
+                <ScalarProperty Name="FromUrl" ColumnName="FromUrl" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
+          <EntitySetMapping Name="Social_Content_Post">
+            <EntityTypeMapping TypeName="SocialDataLocalModel.Social_Content_Post">
+              <MappingFragment StoreEntitySet="Social_Content_Post">
+                <ScalarProperty Name="ID" ColumnName="ID" />
+                <ScalarProperty Name="PostID" ColumnName="PostID" />
+                <ScalarProperty Name="ContentID" ColumnName="ContentID" />
+                <ScalarProperty Name="MatchContentID" ColumnName="MatchContentID" />
+                <ScalarProperty Name="IsChecked" ColumnName="IsChecked" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
+          <EntitySetMapping Name="Social_Contents">
+            <EntityTypeMapping TypeName="SocialDataLocalModel.Social_Contents">
+              <MappingFragment StoreEntitySet="Social_Contents">
+                <ScalarProperty Name="ID" ColumnName="ID" />
+                <ScalarProperty Name="Text" ColumnName="Text" />
+                <ScalarProperty Name="Level" ColumnName="Level" />
+                <ScalarProperty Name="ParentID" ColumnName="ParentID" />
+                <ScalarProperty Name="IsParent" ColumnName="IsParent" />
+                <ScalarProperty Name="Type" ColumnName="Type" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
+          <EntitySetMapping Name="Social_Location_More">
+            <EntityTypeMapping TypeName="SocialDataLocalModel.Social_Location_More">
+              <MappingFragment StoreEntitySet="Social_Location_More">
+                <ScalarProperty Name="ID" ColumnName="ID" />
+                <ScalarProperty Name="ContentID" ColumnName="ContentID" />
+                <ScalarProperty Name="Type" ColumnName="Type" />
+                <ScalarProperty Name="Latitude" ColumnName="Latitude" />
+                <ScalarProperty Name="Longitude" ColumnName="Longitude" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
+        </EntityContainerMapping>
+      </Mapping>
+    </edmx:Mappings>
+  </edmx:Runtime>
+  <!-- EF Designer content (DO NOT EDIT MANUALLY BELOW HERE) -->
+  <Designer xmlns="http://schemas.microsoft.com/ado/2009/11/edmx">
+    <Connection>
+      <DesignerInfoPropertySet>
+        <DesignerProperty Name="MetadataArtifactProcessing" Value="EmbedInOutputAssembly" />
+      </DesignerInfoPropertySet>
+    </Connection>
+    <Options>
+      <DesignerInfoPropertySet>
+        <DesignerProperty Name="ValidateOnBuild" Value="true" />
+        <DesignerProperty Name="EnablePluralization" Value="true" />
+        <DesignerProperty Name="IncludeForeignKeysInModel" Value="true" />
+        <DesignerProperty Name="UseLegacyProvider" Value="false" />
+        <DesignerProperty Name="CodeGenerationStrategy" Value="None" />
+      </DesignerInfoPropertySet>
+    </Options>
+    <!-- Diagram content (shape and connector positions) -->
+    <Diagrams></Diagrams>
+  </Designer>
+</edmx:Edmx>
